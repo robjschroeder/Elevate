@@ -16,18 +16,23 @@
 #	- Elevation Duration
 # - Added logging for loggedInUser's group membership
 # - Visual tweaks to user dialog
-
+# 
+# Updated 03.14.2023 @robjschroeder
+# - Changed Parameter 5 variable value and name 
+# - Added scriptLog as a concatenation of Parameter 5 + Parameter 4
+#
 ##################################################
 # Variables
 
 # Script Version
-scriptVersion="1.0.2"
+scriptVersion="1.0.3"
 
 # Parameter 4: Reverse Domain Name Notation (i.e., "xyz.techitout")
 plistDomain="${4:-"com.company"}"
 
-# Parameter 5: Script Log Location (i.e., "scriptLog="/private/var/tmp/${plistDomain}.elevate.log")
-scriptLog="${5:-"/var/log/${plistDomain}.log"}"
+# Parameter 5: Script Log Location (i.e., "/private/var/log")
+scriptLogLocation="${5:-"/private/var/log"}"
+scriptLog="${scriptLogLocation}/${plistDomain}.elevate.log"
 
 # Parameter 6: Elevation Duration (in minutes)
 elevationDurationMinutes="${6:-"1"}"
