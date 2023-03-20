@@ -84,12 +84,12 @@ function updateScriptLog() {
 }
 
 updateScriptLog "\n###\n# Elevate (placeholderScriptVersion)\n# https://techitout.xyz/\n###\n"
-updateScriptLog "Pre-flight Check: Initiating ..."
+updateScriptLog "Elevate Pre-flight: Initiating ..."
 
 # Confirm script is running as root
 
 if [[ $(id -u) -ne 0 ]]; then
-	updateScriptLog "Pre-flight Check: This script must be run as root; exiting."
+	updateScriptLog "Elevate Pre-flight: This script must be run as root; exiting."
 	exit 1
 fi
 
@@ -99,12 +99,12 @@ fi
 
 if [[ "${osMajorVersion}" -ge 11 ]] ; then
 	
-	updateScriptLog "Pre-flight Check: macOS ${osMajorVersion} installed; checking build version ..."
+	updateScriptLog "Elevate Pre-flight: macOS ${osMajorVersion} installed; checking build version ..."
 	
 # The Mac is running an operating system older than macOS 11 Big Sur; exit with error
 else
 	
-	updateScriptLog "Pre-flight Check: swiftDialog requires at least macOS 11 Big Sur and this Mac is running ${osVersion} (${osBuild}), exiting with error."
+	updateScriptLog "Elevate Pre-flight: swiftDialog requires at least macOS 11 Big Sur and this Mac is running ${osVersion} (${osBuild}), exiting with error."
 	osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\rExpected macOS Build Big Sur (or newer), but found macOS '${osVersion}' ('${osBuild}').\r\r" with title "Elevate: Detected Outdated Operating System" buttons {"Open Software Update"} with icon caution'
 	/usr/bin/open /System/Library/CoreServices/Software\ Update.app
 	exit 1
@@ -113,24 +113,24 @@ fi
 
 # Ensure computer does not go to sleep while running this script (thanks, @grahampugh!)
 
-updateScriptLog "Pre-flight Check: Caffeinating this script (PID: $$)"
+updateScriptLog "Elevate Pre-flight: Caffeinating this script (PID: $$)"
 caffeinate -dimsu -w $$ &
 
 # Confirm Dock is running / user is at Desktop
 
 until pgrep -q -x "Finder" && pgrep -q -x "Dock"; do
-	updateScriptLog "Pre-flight Check: Finder & Dock are NOT running; pausing for 1 second"
+	updateScriptLog "Elevate Pre-flight: Finder & Dock are NOT running; pausing for 1 second"
 	sleep 1
 done
 
-updateScriptLog "Pre-flight Check: Finder & Dock are running; proceeding …"
+updateScriptLog "Elevate Pre-flight: Finder & Dock are running; proceeding …"
 
 # Validate logged-in user
 
 loggedInUser=$( echo "show State:/Users/ConsoleUser" | scutil | awk '/Name :/ { print $3 }' )
 
 if [[ -z "${loggedInUser}" || "${loggedInUser}" == "loginwindow" ]]; then
-	updateScriptLog "Pre-flight Check: No user logged-in; exiting."
+	updateScriptLog "Elevate Pre-flight: No user logged-in; exiting."
 	exit 1
 else
 	loggedInUserFullname=$( id -F "${loggedInUser}" )
@@ -151,7 +151,7 @@ function dialogCheck() {
 	# Check for Dialog and install if not found
 	if [ ! -e "/Library/Application Support/Dialog/Dialog.app" ]; then
 		
-		updateScriptLog "Pre-flight Check: Dialog not found. Installing..."
+		updateScriptLog "Elevate Pre-flight: Dialog not found. Installing..."
 		
 		# Create temporary working directory
 		workDirectory=$( /usr/bin/basename "$0" )
@@ -169,7 +169,7 @@ function dialogCheck() {
 			/usr/sbin/installer -pkg "$tempDirectory/Dialog.pkg" -target /
 			sleep 2
 			dialogVersion=$( /usr/local/bin/dialog --version )
-			updateScriptLog "Pre-flight Check: swiftDialog version ${dialogVersion} installed; proceeding..."
+			updateScriptLog "Elevate Pre-flight: swiftDialog version ${dialogVersion} installed; proceeding..."
 			
 		else
 			
@@ -186,7 +186,7 @@ function dialogCheck() {
 		
 	else
 		
-		updateScriptLog "Pre-flight Check: swiftDialog version $(dialog --version) found; proceeding..."
+		updateScriptLog "Elevate Pre-flight: swiftDialog version $(dialog --version) found; proceeding..."
 		
 	fi
 	
@@ -196,9 +196,9 @@ if [[ ! -e "/Library/Application Support/Dialog/Dialog.app" ]]; then
 	dialogCheck
 fi
 
-# Pre-flight Checks Complete
+# Elevate Pre-flights Complete
 
-updateScriptLog "Pre-flight Check: Complete"
+updateScriptLog "Elevate Pre-flight: Complete"
 
 # Dialog Variables
 
@@ -284,6 +284,9 @@ rm /var/tmp/elevate.*
 # Send Jamf Pro an inventory update
 updateScriptLog "Elevate: Submitting Jamf Inventory Update"
 /usr/local/bin/jamf recon
+
+# Done
+updateScriptLog "Elevate: Completed"
 
 exit 0
 EOF
