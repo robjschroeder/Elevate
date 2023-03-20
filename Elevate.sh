@@ -32,7 +32,7 @@ plistDomain="${4:-"com.company"}"
 
 # Parameter 5: Script Log Location (i.e., "/private/var/log")
 scriptLogLocation="${5:-"/private/var/log"}"
-scriptLog="${scriptLogLocation}/${plistDomain}.elevate.log"
+scriptLog="${scriptLogLocation}/${plistDomain}.log"
 
 # Parameter 6: Elevation Duration (in minutes)
 elevationDurationMinutes="${6:-"1"}"
