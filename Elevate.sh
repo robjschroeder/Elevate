@@ -21,11 +21,14 @@
 # - Changed Parameter 5 variable value and name 
 # - Added scriptLog as a concatenation of Parameter 5 + Parameter 4
 #
+# Updated 04.22.2023 @robjschroeder
+# - Added line to collect log archive for activity duration. Log will be created at /var/log/elevateLog-${timestamp}.logarchive
+#
 ##################################################
 # Variables
 
 # Script Version
-scriptVersion="1.0.3"
+scriptVersion="1.0.4"
 
 # Parameter 4: Reverse Domain Name Notation (i.e., "xyz.techitout")
 plistDomain="${4:-"com.company"}"
@@ -261,6 +264,10 @@ sleep 5
 updateScriptLog "Elevate: Confirming ${loggedInUser} is NOT a member of '80(admin)' …"
 updateScriptLog "(No results equals sucessful removal from '80(admin)' group.)"
 /usr/bin/id $loggedInUser | grep 80 | tee -a placeholderScriptLog
+
+# Collect logs
+timestamp=$(date +%s)
+/usr/bin/log collect --output /var/log/elevateLog-$timestamp.logarchive --last "placeholderElevationDurationMinutes"m
 
 # Delete the LaunchDaemon plist
 updateScriptLog "Elevate: Removing LaunchDaemon plist"
