@@ -22,7 +22,8 @@
 # - Added scriptLog as a concatenation of Parameter 5 + Parameter 4
 #
 # Updated 04.22.2023 @robjschroeder
-# - Added line to collect log archive for activity duration. Log will be created at /var/log/elevateLog-${timestamp}.logarchive
+# - Added line to collect log archive for activity duration. Log will be created at /private/var/log/elevateLog-${timestamp}.logarchive
+# - Logging using macOS log binary
 #
 ##################################################
 # Variables
@@ -267,7 +268,7 @@ updateScriptLog "(No results equals sucessful removal from '80(admin)' group.)"
 
 # Collect logs
 timestamp=$(date +%s)
-/usr/bin/log collect --output /var/log/elevateLog-$timestamp.logarchive --last "placeholderElevationDurationMinutes"m
+/usr/bin/log collect --output /private/var/log/elevateLog-$timestamp.logarchive --last "placeholderElevationDurationMinutes"m
 
 # Delete the LaunchDaemon plist
 updateScriptLog "Elevate: Removing LaunchDaemon plist"
