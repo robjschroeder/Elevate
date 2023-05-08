@@ -25,11 +25,14 @@
 # - Added line to collect log archive for activity duration. Log will be created at /private/var/log/elevateLog-${timestamp}.logarchive
 # - Logging using macOS log binary
 #
+# Updated 05.08.2023 @dan-snelson
+# - Execute a Jamf Pro policy trigger (Parameter 6)
+#
 ##################################################
 # Variables
 
 # Script Version
-scriptVersion="1.0.4"
+scriptVersion="1.0.5"
 
 # Parameter 4: Reverse Domain Name Notation (i.e., "xyz.techitout")
 plistDomain="${4:-"com.company"}"
@@ -41,7 +44,8 @@ elevationDurationSeconds=$(( elevationDurationMinutes * 60 ))
 # Script Log Location (based on $plistDomain)
 scriptLog="/private/var/log/${plistDomain}.log"
 
-
+# Parameter 6: Execute a Jamf Pro Policy
+jamfProPolicyCustomEvent="${6:-"localAdministrativeRightsRemove"}"
 
 ##################################################
 # Remove old artifacts, if any ...
@@ -73,6 +77,7 @@ xxd -p -s 260 "$(defaults read /Library/Preferences/com.jamfsoftware.jamf self_s
 scriptVersion="placeholderScriptVersion"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin/
 scriptLog="placeholderScriptLog"
+jamfProPolicyCustomEvent="placeholderJamfProPolicyCustomEvent"
 osVersion=$( sw_vers -productVersion )
 osBuild=$( sw_vers -buildVersion )
 osMajorVersion=$( echo "${osVersion}" | awk -F '.' '{print $1}' )
@@ -294,6 +299,9 @@ rm /var/tmp/elevate.*
 updateScriptLog "Elevate: Submitting Jamf Inventory Update"
 /usr/local/bin/jamf recon
 
+# Execute a Jamf Pro policy trigger (Parameter 6)
+/usr/local/bin/jamf policy -event placeholderJamfProPolicyCustomEvent
+
 # Done
 updateScriptLog "Elevate: Completed"
 
@@ -314,6 +322,7 @@ fi
 /usr/bin/sed -i.backup2 "s|placeholderScriptLog|${scriptLog}|g" /var/tmp/elevate.sh
 /usr/bin/sed -i.backup3 "s|placeholderElevationDurationSeconds|${elevationDurationSeconds}|g" /var/tmp/elevate.sh
 /usr/bin/sed -i.backup4 "s|placeholderElevationDurationMinutes|${elevationDurationMinutes}|g" /var/tmp/elevate.sh
+/usr/bin/sed -i.backup5 "s|placeholderJamfProPolicyCustomEvent|${jamfProPolicyCustomEvent}|g" /var/tmp/elevate.sh
 
 # set correct ownership and permissions on run-startosinstall.zsh script
 
