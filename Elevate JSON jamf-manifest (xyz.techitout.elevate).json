@@ -1,0 +1,42 @@
+{
+	"title": "Elevate (xyz.techitout.elevate)",
+	"description": "Managable settings for the Elevate app (https://github.com/robjschroeder/Elevate)",
+    "__feedback": "MacAdmins Slack: @robjschroeder",
+	"properties": {
+        "elevationDurationMinutes": {
+            "title": "Elevation duration in minutes",
+            "description": "The number of minutes in which a user should be elevated to Admin",
+            "property_order": 1,
+			"default": "10",
+			"type": "string"
+        },
+        "icon": {
+            "title": "Icon",
+            "description": "This is the path to an icon used by the dialog prompts",
+            "property_order": 2,
+			"default": "/System/Library/CoreServices/KeyboardSetupAssistant.app/Contents/Resources/AppIcon.icns",
+			"type": "string"
+        },
+        "jamfProPolicyCustomEvent": {
+            "title": "Jamf Pro Policy Custom Event",
+            "description": "If you would like to have Jamf Pro run a policy after Elevate, add the custom trigger of the policy here",
+            "property_order": 3,
+			"default": "",
+			"type": "string"
+        },
+        "removeAdminRights": {
+            "title": "Remove Admin Rights",
+            "description": "If set to true, Elevate will remove admin rights for all users. If set to false, Elevate will not run on admin users",
+            "property_order": 4,
+			"default": "true",
+			"type": "boolean"
+        },
+        "webhookURL": {
+            "title": "WebHook URL",
+            "description": "If set, Elevate can send a notification via webhook to Teams or Slack when a user elevates",
+            "property_order": 5,
+            "default": "",
+            "type": "string"
+        }
+	}
+}
