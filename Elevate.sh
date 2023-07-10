@@ -36,6 +36,10 @@
 # -- Use this in conjunction with the `removeAdminRights` variable for desired results.
 # - Extension Attribute examples coming soon. 
 #
+# Updated 07.10.2023 @robjschroeder
+# Version: 2.0.0-b2
+# - Fixed some issues with plist entries
+#
 ##################################################
 
 ####################################################################################################
