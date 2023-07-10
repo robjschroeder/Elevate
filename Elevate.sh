@@ -48,7 +48,7 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.0-b1"
+scriptVersion="2.0.0-b2"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
