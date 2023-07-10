@@ -353,9 +353,9 @@ cat << '==endOfScript==' > /var/tmp/elevate.sh
 
 # Script Version, Script Log, Script Functional Name
 
-scriptFuncationalName="Elevate"
-scriptVersion=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate scriptVerison )
-scriptLog=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate scriptLog )
+scriptFunctionalName="Elevate"
+scriptVersion=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptVersion )
+scriptLog=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptLog )
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin/
 exitCode="0"
 
