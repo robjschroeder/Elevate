@@ -310,19 +310,19 @@ if [[ ${managedConfig} == "false" ]]; then
     if [ -f "$elevateConfigProfile" ]; then
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} already exists, no need to create"
         updateScriptLog "${scriptFunctionalName}: Updating ${elevateConfigProfile} to latest variables..."
-        ${plistBuddy} -c "Set :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :scriptLog string ${scriptLog}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :jamfProPolicyCustomEvent string ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :webhookURL string ${webHookURL}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :icon string ${icon}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :supportTeamName string ${supportTeamName}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :supportTeamPhone string ${supportTeamPhone}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :supportTeamEmail string ${supportTeamEmail}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :supportKB string ${supportKB}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :supportTeamErrorKB string ${supportTeamErrorKB}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :supportTeamHelpKB string ${supportTeamHelpKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :elevationDurationMinutes ${elevationDurationMinutes}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :removeAdminRights ${removeAdminRights}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :jamfProPolicyCustomEvent ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webHookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :icon ${icon}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :supportTeamName ${supportTeamName}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :supportTeamPhone ${supportTeamPhone}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :supportTeamEmail ${supportTeamEmail}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :supportKB ${supportKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :supportTeamErrorKB ${supportTeamErrorKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :supportTeamHelpKB ${supportTeamHelpKB}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} does not exist, creating now..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
