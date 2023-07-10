@@ -18,4 +18,4 @@ In my environment, I needed a way to be able to temporarily give admin access to
 
 If the target computer doesn't have swiftDialog, the script will curl the latest version and install it before continuing. 
 
-Always test in your own environment before pushing to production.
+Always test in your own environment before pushing to production. Current development version: 2.0.0-b1
