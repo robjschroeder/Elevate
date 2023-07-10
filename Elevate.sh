@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#!/bin/bash
-
 # https://github.com/robjschroeder/Elevate
 #
 # Script to promote the logged in user to admin then demote 
