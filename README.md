@@ -5,6 +5,7 @@ Elevate is a script that can be ran from Jamf Pro to help elevate a standard use
 
 This script is meant to be ran as a Self Service with Jamf Pro. The script will promote the currently logged in user to an Admin user for a defined number of seconds, then demote the user back to a standard account while providing dialog to the end-user. The script uses swiftDialog to present the dialog to the user: [https://github.com/bartreardon/swiftDialog](https://github.com/bartreardon/swiftDialog)
 <img width="932" alt="Screenshot 2023-07-11 at 3 45 21 PM" src="https://github.com/robjschroeder/Elevate/assets/23343243/f7bcb268-dea9-49ce-928f-278db7a96644">
+
 <img width="493" alt="Screenshot 2023-04-22 at 11 10 20 PM" src="https://user-images.githubusercontent.com/23343243/233823115-7266230a-2411-4c9e-be4b-a1bc6d1fbdb6.png">
 
 ## New Features
