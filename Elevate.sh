@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2181
 
 # https://github.com/robjschroeder/Elevate
 #
@@ -40,6 +41,11 @@
 # Version: 2.0.0-b2
 # - Fixed some issues with plist entries
 #
+# Updated 07.11.2023 @robjschroeder
+# Version: 2.0.0-b3
+# - Added functionality for Slack and Teams webhooks
+# - Additional cleanup
+#
 ##################################################
 
 ####################################################################################################
@@ -52,9 +58,14 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.0-b2"
+scriptVersion="2.0.0-b3"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# NOTE: Any parameters passed into the script will be ignored IF you 
+# are using a managed configuration profile
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Parameter 4: Reverse Domain Name Notation (i.e., "xyz.techitout")
 plistDomain="${4:-"com.company"}"
@@ -63,7 +74,6 @@ scriptLog="/var/log/${plistDomain}.log"
 
 # Parameter 5: Maximum Elevation Duration (in minutes)
 elevationDurationMinutes="${5:-"10"}"
-elevationDurationSeconds=$(( elevationDurationMinutes * 60 ))
 
 # Parameter 6: Execute a Jamf Pro Policy
 jamfProPolicyCustomEvent="${6:-"localAdministrativeRightsRemove"}"
@@ -72,7 +82,7 @@ jamfProPolicyCustomEvent="${6:-"localAdministrativeRightsRemove"}"
 removeAdminRights="${7:-"true"}"
 
 # Paramter 8: Microsoft Teams or Slack Webhook URL [ Leave blank to disable (default) | https://microsoftTeams.webhook.com/URL | https://hooks.slack.com/services/URL ] Can be used to send Elevation request details to Microsoft Teams or Slack via Webhook. (Function will automatically detect if Webhook URL is for Slack or Teams; can be modified to include other communication tools that support functionality.)
-#webhookURL="${8:-""}"
+webhookURL="${8:-""}"
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -93,6 +103,9 @@ supportTeamHelpKB="\n- **Knowledge Base Article:** ${supportKB}"
 # Path to PList Buddy
 plistBuddy="/usr/libexec/PlistBuddy"
 
+# Jamf Binary
+jamfBinary="/usr/local/bin/jamf"
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Operating System, Computer Model Name, etc.
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -102,9 +115,6 @@ osVersionExtra=$( sw_vers -productVersionExtra )
 osBuild=$( sw_vers -buildVersion )
 osMajorVersion=$( echo "${osVersion}" | awk -F '.' '{print $1}' )
 if [[ -n $osVersionExtra ]] && [[ "${osMajorVersion}" -ge 13 ]]; then osVersion="${osVersion} ${osVersionExtra}"; fi # Report RSR sub version if applicable
-modelName=$( /usr/libexec/PlistBuddy -c 'Print :0:_items:0:machine_name' /dev/stdin <<< "$(system_profiler -xml SPHardwareDataType)" )
-reconOptions=""
-exitCode="0"
 
 ####################################################################################################
 #
@@ -187,7 +197,7 @@ if [[ "${osMajorVersion}" -ge 11 ]] ; then
 else
     # The Mac is running an operating system older than macOS 11 Big Sur; exit with error
     updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): swiftDialog requires at least macOS 11 Big Sur and this Mac is running ${osVersion} (${osBuild}), exiting with error."
-    osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\rExpected macOS 11 Big Sur (or newer), but found macOS '${osVersion}'.\r\r" with title "'${scriptFunctionalName}': Detected Outdated Operating System" buttons {"Open Software Update"} with icon caution'
+    osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\rExpected macOS 11 Big Sur (or newer), but found macOS '"${osVersion}"'.\r\r" with title "'${scriptFunctionalName}': Detected Outdated Operating System" buttons {"Open Software Update"} with icon caution'
     updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): Executing /usr/bin/open '/System/Library/CoreServices/Software Update.app' …"
     su - "${loggedInUser}" -c "/usr/bin/open /System/Library/CoreServices/Software Update.app"
     exit 1
@@ -198,9 +208,6 @@ fi
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 function dialogCheck() {
-
-    # Output Line Number in `verbose` Debug Mode
-    if [[ "${debugMode}" == "verbose" ]]; then updateScriptLog "PRE-FLIGHT CHECK: # # # ${scriptFunctionalName} VERBOSE DEBUG MODE: Line No. ${LINENO} # # #" ; fi
 
     # Get the URL of the latest PKG From the Dialog GitHub repo
     dialogURL=$(curl --silent --fail "https://api.github.com/repos/bartreardon/swiftDialog/releases/latest" | awk -F '"' "/browser_download_url/ && /pkg\"/ { print \$4; exit }")
@@ -235,9 +242,9 @@ function dialogCheck() {
 
             # Display a so-called "simple" dialog if Team ID fails to validate
             osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\r• Dialog Team ID verification failed\r\r" with title "'${scriptFunctionalName}': Error" buttons {"Close"} with icon caution'
-            exitCode="1"
-            quitScript
-
+            updateScriptLog "PRE-FLIGHT CHECK: Team ID validation failure, exiting..."
+            exit 1
+            
         fi
 
         # Remove the temporary working directory when done
@@ -274,6 +281,9 @@ fi
 # Kill the LaunchDaemon process
 /bin/launchctl remove "${plistDomain}".elevate
 
+# Run initial recon
+reconRaw=$( eval "${jamfBinary} recon -verbose | tee -a ${scriptLog}" )
+computerID=$( echo "${reconRaw}" | grep '<computer_id>' | xmllint --xpath xmllint --xpath '/computer_id/text()' - )
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Pre-flight Check: Complete
@@ -298,19 +308,24 @@ if [ -f "$elevateManagedConfigProfile" ]; then
     managedConfig="true"
     if [ -f "$elevateConfigProfile" ]; then
         updateScriptLog "${scriptFunctionalName}: Updating ${elevateConfigProfile} with extra variables..."
+        ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :computerID ${computerID}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: Creating ${elevateConfigProfile} with extra variables..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
     fi
 else
     updateScriptLog "${scriptFunctionalName}: Managed Configuration Profile does not exist, using ${elevateConfigProfile} for settings"
 fi
 
 if [[ ${managedConfig} == "false" ]]; then
-    updateScriptLog "${scriptFuncationalName}: Looking for ${elevateConfigProfile}"
+    updateScriptLog "${scriptFunctionalName}: Looking for ${elevateConfigProfile}"
     if [ -f "$elevateConfigProfile" ]; then
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} already exists, no need to create"
         updateScriptLog "${scriptFunctionalName}: Updating ${elevateConfigProfile} to latest variables..."
@@ -319,7 +334,7 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Set :elevationDurationMinutes ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :removeAdminRights ${removeAdminRights}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :jamfProPolicyCustomEvent ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :webhookURL ${webHookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :icon ${icon}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamName ${supportTeamName}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamPhone ${supportTeamPhone}" ${elevateConfigProfile}
@@ -327,6 +342,7 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Set :supportKB ${supportKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamErrorKB ${supportTeamErrorKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamHelpKB ${supportTeamHelpKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :computerID ${computerID}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} does not exist, creating now..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
@@ -334,7 +350,7 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Add :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :jamfProPolicyCustomEvent string ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :webhookURL string ${webHookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :icon string ${icon}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamName string ${supportTeamName}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamPhone string ${supportTeamPhone}" ${elevateConfigProfile}
@@ -342,6 +358,7 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Add :supportKB string ${supportKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamErrorKB string ${supportTeamErrorKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamHelpKB string ${supportTeamHelpKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
     fi
 fi
 
@@ -360,6 +377,7 @@ cat << '==endOfScript==' > /var/tmp/elevate.sh
 scriptFunctionalName="Elevate"
 scriptVersion=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptVersion )
 scriptLog=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptLog )
+computerID=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist computerID )
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin/
 exitCode="0"
 
@@ -410,7 +428,6 @@ supportTeamHelpKB=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamH
 supportTeamName=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamName )
 supportTeamPhone=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamPhone)
 webhookURL=$( /usr/bin/defaults read "${elevateProfilePath}" webhookURL )
-
 
 ####################################################################################################
 #
@@ -667,6 +684,152 @@ function quitScript() {
 
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Webhook Message (Microsoft Teams or Slack) (thanks, @robjschroeder! and @iDrewbs!)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+function webHookMessage() {
+
+    # # Jamf Pro URL for on-prem, multi-node, clustered environments
+    # case ${jamfProURL} in
+    #     *"beta"*    ) jamfProURL="https://jamfpro-beta.internal.company.com/" ;;
+    #     *           ) jamfProURL="https://jamfpro-prod.internal.company.com/" ;;
+    # esac
+    jamfProURL=$(/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf.plist jss_url)
+    jamfProComputerURL="${jamfProURL}computers.html?id=${computerID}&o=r"
+
+    if [[ $webhookURL == *"slack"* ]]; then
+        
+        updateScriptLog "Generating Slack Message …"
+        
+        webHookdata=$(cat <<EOF
+        {
+            "blocks": [
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "Security: Elevate Request",
+                        "emoji": true
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Elevation Request:*\n$( scutil --get ComputerName )"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Serial:*\n${serialNumber}"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*User:*\n${loggedInUser}"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*OS Version:*\n${osVersion}"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Reason:*\n${elevateReason}"
+                        }
+                    ]
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "View in Jamf Pro"
+                                },
+                            "style": "primary",
+                            "url": "${jamfProComputerURL}"
+                        }
+                    ]
+                }
+            ]
+        }
+EOF
+)
+
+        # Send the message to Slack
+        updateScriptLog "Send the message to Slack …"
+        updateScriptLog "${webHookdata}"
+        
+        # Submit the data to Slack
+        /usr/bin/curl -sSX POST -H 'Content-type: application/json' --data "${webHookdata}" $webhookURL 2>&1
+        
+        webhookResult="$?"
+        updateScriptLog "Slack Webhook Result: ${webhookResult}"
+        
+    else
+        
+        updateScriptLog "Generating Microsoft Teams Message …"
+
+        # URL to an image to add to your notification
+        activityImage="https://creazilla-store.fra1.digitaloceanspaces.com/cliparts/78010/old-mac-computer-clipart-md.png"
+
+        webHookdata=$(cat <<EOF
+{
+    "@type": "MessageCard",
+    "@context": "http://schema.org/extensions",
+    "themeColor": "E4002B",
+    "summary": "Security: Elevate Request",
+    "sections": [{
+        "activityTitle": "Security: Elevate Request",
+        "activitySubtitle": "${jamfProURL}",
+        "activityImage": "${activityImage}",
+        "facts": [{
+            "name": "Mac Serial",
+            "value": "${serialNumber}"
+        }, {
+            "name": "Computer Name",
+            "value": "$( scutil --get ComputerName )"
+        }, {
+            "name": "User",
+            "value": "${loggedInUser}"
+        }, {
+            "name": "Operating System Version",
+            "value": "${osVersion}"
+        }, {
+            "name": "Reason",
+            "value": "${elevateReason}"
+}],
+        "markdown": true,
+        "potentialAction": [{
+        "@type": "OpenUri",
+        "name": "View in Jamf Pro",
+        "targets": [{
+        "os": "default",
+            "uri": "${jamfProComputerURL}"
+            }]
+        }]
+    }]
+}
+EOF
+)
+
+    # Send the message to Microsoft Teams
+    updateScriptLog "Send the message Microsoft Teams …"
+    updateScriptLog "${webHookdata}"
+
+    curl --request POST \
+    --url "${webhookURL}" \
+    --header 'Content-Type: application/json' \
+    --data "${webHookdata}"
+    
+    webhookResult="$?"
+    updateScriptLog "Microsoft Teams Webhook Result: ${webhookResult}"
+    
+    fi
+    
+}
+
 ####################################################################################################
 #
 # Program
@@ -702,6 +865,8 @@ case "${promptReturnCode}" in
 esac
     
 captureReason
+
+webHookMessage
 
 # Promote the user to admin
 updateScriptLog "${scriptFunctionalName}: Promoting ${loggedInUser} to admin"
