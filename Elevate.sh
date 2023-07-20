@@ -45,6 +45,11 @@
 # Version: 2.0.0-b3
 # - Added functionality for Slack and Teams webhooks
 # - Additional cleanup
+# 
+# Updated 07.20.2023 @robjschroeder
+# Version: 2.0.1
+# - Added a cancel button for Elevate request. FR #18 (thanks @dan-snelson!)
+# - Modified prompt dialog to be ontop
 #
 ##################################################
 
@@ -58,7 +63,7 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.0-b3"
+scriptVersion="2.0.1"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
@@ -490,6 +495,7 @@ promptJSON='
 	"overlayicon" : "'"${overlayicon}"'",
 	"moveable" : "true",
 	"button1text" : "Continue",
+    "button2text" : "Cancel",
 	"messagealignment" : "left",
 	"textfield" : [
 		{
@@ -856,6 +862,11 @@ case "${promptReturnCode}" in
     updateScriptLog "${scriptFunctionalName}: ${loggedInUser} provided input"
     updateScriptLog "${scriptFunctionalName}: Reason for elevation: ${elevateReason}"
     updateScriptLog "${scriptFunctinoalName}: Continuing to elevate ${loggedInUser}"
+    ;;
+    2) # Process exit code 2 scenario here
+    updateScriptLog "${scriptFunctionalName}: ${loggedInUser} clicked Cancel, exiting..."
+    exitCode="3"
+    quitScript
     ;;
     *) # Process Catch All scenario
     updateScriptLog "${scriptFunctionalName}: Something else happened, exiting..."
