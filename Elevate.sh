@@ -58,6 +58,12 @@
 # - Webhook data is no longer shown in log when processing (good eye @dan-snelson!)
 # - Added function to disable jamf pro binary during elevation. Issue #21 (thanks @dan-snelson!)
 #
+# Updated 07.24.2023 @robjschroeder
+# Version: 2.0.3
+# - Addressed an issue with using script parameters after a managed configuration profile is removed
+# - Removed ComputerID from PLIST, no need
+# - WebhookURL should not be stored in PLIST, it will now be removed after it is used
+#
 ##################################################
 
 ####################################################################################################
@@ -70,7 +76,7 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.2"
+scriptVersion="2.0.3"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
@@ -315,13 +321,10 @@ if [ -f "$elevateManagedConfigProfile" ]; then
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :computerID ${computerID}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: Creating ${elevateConfigProfile} with extra variables..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
     fi
 else
     updateScriptLog "${scriptFunctionalName}: Managed Configuration Profile does not exist, using ${elevateConfigProfile} for settings"
@@ -332,20 +335,32 @@ if [[ ${managedConfig} == "false" ]]; then
     if [ -f "$elevateConfigProfile" ]; then
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} already exists, no need to create"
         updateScriptLog "${scriptFunctionalName}: Updating ${elevateConfigProfile} to latest variables..."
+        ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :elevationDurationMinutes ${elevationDurationMinutes}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :removeAdminRights ${removeAdminRights}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :jamfProPolicyCustomEvent string ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :jamfProPolicyCustomEvent ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :icon string ${icon}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :icon ${icon}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamName string ${supportTeamName}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamName ${supportTeamName}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamPhone string ${supportTeamPhone}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamPhone ${supportTeamPhone}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamEmail string ${supportTeamEmail}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamEmail ${supportTeamEmail}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportKB string ${supportKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportKB ${supportKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamErrorKB string ${supportTeamErrorKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamErrorKB ${supportTeamErrorKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamHelpKB string ${supportTeamHelpKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamHelpKB ${supportTeamHelpKB}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :computerID ${computerID}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} does not exist, creating now..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
@@ -361,7 +376,6 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Add :supportKB string ${supportKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamErrorKB string ${supportTeamErrorKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamHelpKB string ${supportTeamHelpKB}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
     fi
 fi
 
@@ -879,6 +893,9 @@ EOF
     
     webhookResult="$?"
     updateScriptLog "Microsoft Teams Webhook Result: ${webhookResult}"
+
+    updateScriptLog "${scriptFunctionalName}: Removing webHookURL from PLIST"
+    /usr/libexec/PlistBuddy -c "Delete :webhookURL" ${elevateProfilePath}
     
     fi
     
@@ -911,7 +928,7 @@ case "${promptReturnCode}" in
     updateScriptLog "${scriptFunctionalName}: Reason for elevation: ${elevateReason}"
     updateScriptLog "${scriptFunctinoalName}: Continuing to elevate ${loggedInUser}"
     ;;
-    1) # Process exit code 1 scenario here
+    2) # Process exit code 1 scenario here
     updateScriptLog "${scriptFunctionalName}: ${loggedInUser} clicked cancel, exiting..."
     exitCode="1"
     quitScript
