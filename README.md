@@ -16,7 +16,9 @@ If you apply the managed configuration profile, all parameters passed into the s
 ### Capture the reason a user is using Elevate
 With version 2.0.0 I have added an additional prompt that will ask the user to provide a reason they need their rights elevated. This reason is captured in /Library/Preferences/xyz.techitout.elevate.plist with a timestamp. This will help to ensure that requests are being used for legitimate reasons and can be audited at any point. 
 ### Use webhooks to be notified of Elevation requests
-With 2.0.0 you can configure a Teams or Slack webhook URL to send the Elevation request to. This can be handy to get a feel for what your users are requesting admin for and how often. 
+With 2.0.0 you can configure a Teams or Slack webhook URL to send the Elevation request to. This can be handy to get a feel for what your users are requesting admin for and how often.
+
+## Check the changelog for updates on changes.
 
 ## Why build this
 In my environment, I needed a way to be able to temporarily give admin access to certain users while having the confidence that they would return to a standard user after the given amount of time has passed. Also, I would like to swiftDialog-ize everything!
