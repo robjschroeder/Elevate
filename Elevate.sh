@@ -321,10 +321,13 @@ if [ -f "$elevateManagedConfigProfile" ]; then
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: Creating ${elevateConfigProfile} with extra variables..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
     fi
 else
     updateScriptLog "${scriptFunctionalName}: Managed Configuration Profile does not exist, using ${elevateConfigProfile} for settings"
@@ -339,6 +342,8 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :elevationDurationMinutes ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
@@ -365,6 +370,8 @@ if [[ ${managedConfig} == "false" ]]; then
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} does not exist, creating now..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :jamfProPolicyCustomEvent string ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
@@ -394,7 +401,8 @@ cat << '==endOfScript==' > /var/tmp/elevate.sh
 scriptFunctionalName="Elevate"
 scriptVersion=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptVersion )
 scriptLog=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptLog )
-computerID=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist computerID )
+webhookURL=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist webhookURL )
+
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin/
 exitCode="0"
 
@@ -444,7 +452,6 @@ supportTeamErrorKB=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeam
 supportTeamHelpKB=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamHelpKB )
 supportTeamName=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamName )
 supportTeamPhone=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamPhone)
-webhookURL=$( /usr/bin/defaults read "${elevateProfilePath}" webhookURL )
 
 ####################################################################################################
 #
@@ -895,7 +902,8 @@ EOF
     updateScriptLog "Microsoft Teams Webhook Result: ${webhookResult}"
 
     updateScriptLog "${scriptFunctionalName}: Removing webHookURL from PLIST"
-    /usr/libexec/PlistBuddy -c "Delete :webhookURL" ${elevateProfilePath}
+    /usr/libexec/PlistBuddy -c "Delete :webhookURL" /Library/Preferences/xyz.techitout.elevate.plist
+
     
     fi
     
