@@ -46,6 +46,24 @@
 # - Added functionality for Slack and Teams webhooks
 # - Additional cleanup
 #
+# Updated 07.20.2023 @robjschroeder
+# Version: 2.0.1
+# - Added a cancel button for Elevate request. FR #18 (thanks @dan-snelson!)
+# - Modified prompt dialog to be ontop when request is made
+#
+# Updated 07.24.2023 @robjschroeder
+# Version: 2.0.2
+# - Moved initial recon for improved launch speed. Issue #20 (thanks @dan-snelson!)
+# - Added script version to infobox text of prompt dialog (thanks @dan-snelson!)
+# - Webhook data is no longer shown in log when processing (good eye @dan-snelson!)
+# - Added function to disable jamf pro binary during elevation. Issue #21 (thanks @dan-snelson!)
+#
+# Updated 07.24.2023 @robjschroeder
+# Version: 2.0.3
+# - Addressed an issue with using script parameters after a managed configuration profile is removed
+# - Removed ComputerID from PLIST, no need
+# - WebhookURL should not be stored in PLIST, it will now be removed after it is used
+#
 ##################################################
 
 ####################################################################################################
@@ -58,14 +76,9 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.0-b3"
+scriptVersion="2.0.3"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# NOTE: Any parameters passed into the script will be ignored IF you 
-# are using a managed configuration profile
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Parameter 4: Reverse Domain Name Notation (i.e., "xyz.techitout")
 plistDomain="${4:-"com.company"}"
@@ -281,10 +294,6 @@ fi
 # Kill the LaunchDaemon process
 /bin/launchctl remove "${plistDomain}".elevate
 
-# Run initial recon
-reconRaw=$( eval "${jamfBinary} recon -verbose | tee -a ${scriptLog}" )
-computerID=$( echo "${reconRaw}" | grep '<computer_id>' | xmllint --xpath xmllint --xpath '/computer_id/text()' - )
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Pre-flight Check: Complete
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -312,13 +321,13 @@ if [ -f "$elevateManagedConfigProfile" ]; then
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :computerID ${computerID}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: Creating ${elevateConfigProfile} with extra variables..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
     fi
 else
     updateScriptLog "${scriptFunctionalName}: Managed Configuration Profile does not exist, using ${elevateConfigProfile} for settings"
@@ -329,24 +338,40 @@ if [[ ${managedConfig} == "false" ]]; then
     if [ -f "$elevateConfigProfile" ]; then
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} already exists, no need to create"
         updateScriptLog "${scriptFunctionalName}: Updating ${elevateConfigProfile} to latest variables..."
+        ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptVersion ${scriptVersion}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :scriptLog ${scriptLog}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :elevationDurationMinutes ${elevationDurationMinutes}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :removeAdminRights ${removeAdminRights}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :jamfProPolicyCustomEvent ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :elevationDurationMinutes ${elevationDurationMinutes}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :removeAdminRights ${removeAdminRights}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :jamfProPolicyCustomEvent string ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :jamfProPolicyCustomEvent ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL string ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :icon string ${icon}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :icon ${icon}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamName string ${supportTeamName}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamName ${supportTeamName}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamPhone string ${supportTeamPhone}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamPhone ${supportTeamPhone}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamEmail string ${supportTeamEmail}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamEmail ${supportTeamEmail}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportKB string ${supportKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportKB ${supportKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamErrorKB string ${supportTeamErrorKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamErrorKB ${supportTeamErrorKB}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :supportTeamHelpKB string ${supportTeamHelpKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Set :supportTeamHelpKB ${supportTeamHelpKB}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Set :computerID ${computerID}" ${elevateConfigProfile}
     else
         updateScriptLog "${scriptFunctionalName}: ${elevateConfigProfile} does not exist, creating now..."
         ${plistBuddy} -c "Add :scriptVersion string ${scriptVersion}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :scriptLog string ${scriptLog}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Add :webhookURL ${webhookURL}" ${elevateConfigProfile}
+        ${plistBuddy} -c "Set :webhookURL ${webhookURL}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :elevationDurationMinutes string ${elevationDurationMinutes}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :removeAdminRights bool ${removeAdminRights}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :jamfProPolicyCustomEvent string ${jamfProPolicyCustomEvent}" ${elevateConfigProfile}
@@ -358,7 +383,6 @@ if [[ ${managedConfig} == "false" ]]; then
         ${plistBuddy} -c "Add :supportKB string ${supportKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamErrorKB string ${supportTeamErrorKB}" ${elevateConfigProfile}
         ${plistBuddy} -c "Add :supportTeamHelpKB string ${supportTeamHelpKB}" ${elevateConfigProfile}
-        ${plistBuddy} -c "Add :computerID string ${computerID}" ${elevateConfigProfile}
     fi
 fi
 
@@ -377,7 +401,8 @@ cat << '==endOfScript==' > /var/tmp/elevate.sh
 scriptFunctionalName="Elevate"
 scriptVersion=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptVersion )
 scriptLog=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist scriptLog )
-computerID=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist computerID )
+webhookURL=$( /usr/bin/defaults read /Library/Preferences/xyz.techitout.elevate.plist webhookURL )
+
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin/
 exitCode="0"
 
@@ -427,7 +452,6 @@ supportTeamErrorKB=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeam
 supportTeamHelpKB=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamHelpKB )
 supportTeamName=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamName )
 supportTeamPhone=$( /usr/bin/defaults read "${elevateProfilePath}" supportTeamPhone)
-webhookURL=$( /usr/bin/defaults read "${elevateProfilePath}" webhookURL )
 
 ####################################################################################################
 #
@@ -486,10 +510,13 @@ promptJSON='
 	"titlefont" : "size=22",
 	"message" : "'"${promptDialogMessage}"'",
 	"icon" : "'"${icon}"'",
+    "infotext" : "'"${scriptVersion}"'",
 	"iconsize" : "135",
 	"overlayicon" : "'"${overlayicon}"'",
 	"moveable" : "true",
+    "ontop" : "true",
 	"button1text" : "Continue",
+    "button2text" : "Cancel",
 	"messagealignment" : "left",
 	"textfield" : [
 		{
@@ -521,6 +548,7 @@ adminDialogCMD="$dialogBinary -p \
 --titlefont size=22 \
 --message \"$adminDialogMessage\" \
 --icon \"$icon\" \
+--infotext \"$scriptVersion\" \
 --iconsize 135 \
 --overlayicon \"$overlayicon\" \
 --moveable \
@@ -614,6 +642,47 @@ function killProcess() {
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Toggle `jamf` binary check-in (thanks, @robjschroeder!)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+function toggleJamfLaunchDaemon() {
+    
+    jamflaunchDaemon="/Library/LaunchDaemons/com.jamfsoftware.task.1.plist"
+
+    while [[ ! -f "${jamflaunchDaemon}" ]] ; do
+        updateScriptLog "PRE-FLIGHT CHECK: Waiting for installation of ${jamflaunchDaemon}"
+        sleep 0.1
+    done
+
+    if [[ $(/bin/launchctl list | grep com.jamfsoftware.task.E) ]]; then
+
+        updateScriptLog "${scriptFunctionalName}: Temporarily disable 'jamf' binary check-in"
+        /bin/launchctl bootout system "${jamflaunchDaemon}"
+
+    else
+
+        updateScriptLog "QUIT SCRIPT: Re-enabling 'jamf' binary check-in"
+        updateScriptLog "QUIT SCRIPT: 'jamf' binary check-in daemon not loaded, attempting to bootstrap and start"
+        result="0"
+
+        until [ $result -eq 3 ]; do
+
+            /bin/launchctl bootstrap system "${jamflaunchDaemon}" && /bin/launchctl start "${jamflaunchDaemon}"
+            result="$?"
+
+            if [ $result = 3 ]; then
+                updateScriptLog "QUIT SCRIPT: Staring 'jamf' binary check-in daemon"
+            else
+                updateScriptLog "QUIT SCRIPT: Failed to start 'jamf' binary check-in daemon"
+            fi
+
+        done
+
+    fi
+
+}
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Quit Script (thanks, @bartreadon!)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -669,6 +738,9 @@ function quitScript() {
     updateScriptLog "QUIT SCRIPT: Removing Elevate script"
     rm /var/tmp/elevate.*
 
+    # Re-enable the Jamf Binary Check-In process
+    toggleJamfLaunchDaemon
+
     # Send Jamf Pro an inventory update
     updateScriptLog "QUIT SCRIPT: Submitting Jamf Inventory Update"
     /usr/local/bin/jamf recon
@@ -695,6 +767,10 @@ function webHookMessage() {
     #     *"beta"*    ) jamfProURL="https://jamfpro-beta.internal.company.com/" ;;
     #     *           ) jamfProURL="https://jamfpro-prod.internal.company.com/" ;;
     # esac
+    # Run initial recon
+    reconRaw=$( eval "${jamfBinary} recon -verbose | tee -a ${scriptLog}" )
+    computerID=$( echo "${reconRaw}" | grep '<computer_id>' | xmllint --xpath xmllint --xpath '/computer_id/text()' - )
+
     jamfProURL=$(/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf.plist jss_url)
     jamfProComputerURL="${jamfProURL}computers.html?id=${computerID}&o=r"
 
@@ -816,7 +892,6 @@ EOF
 
     # Send the message to Microsoft Teams
     updateScriptLog "Send the message Microsoft Teams …"
-    updateScriptLog "${webHookdata}"
 
     curl --request POST \
     --url "${webhookURL}" \
@@ -825,6 +900,10 @@ EOF
     
     webhookResult="$?"
     updateScriptLog "Microsoft Teams Webhook Result: ${webhookResult}"
+
+    updateScriptLog "${scriptFunctionalName}: Removing webHookURL from PLIST"
+    /usr/libexec/PlistBuddy -c "Delete :webhookURL" /Library/Preferences/xyz.techitout.elevate.plist
+
     
     fi
     
@@ -857,16 +936,22 @@ case "${promptReturnCode}" in
     updateScriptLog "${scriptFunctionalName}: Reason for elevation: ${elevateReason}"
     updateScriptLog "${scriptFunctinoalName}: Continuing to elevate ${loggedInUser}"
     ;;
+    2) # Process exit code 1 scenario here
+    updateScriptLog "${scriptFunctionalName}: ${loggedInUser} clicked cancel, exiting..."
+    exitCode="1"
+    quitScript
+    ;;
     *) # Process Catch All scenario
     updateScriptLog "${scriptFunctionalName}: Something else happened, exiting..."
     exitCode="2"
     quitScript
     ;;
 esac
-    
-captureReason
 
-webHookMessage
+# Disable the jamf binary check-in process
+toggleJamfLaunchDaemon
+
+captureReason
 
 # Promote the user to admin
 updateScriptLog "${scriptFunctionalName}: Promoting ${loggedInUser} to admin"
@@ -880,8 +965,8 @@ updateScriptLog ""
 # Launching admin dialog
 updateScriptLog "${scriptFunctionalName}: Launching user dialog for ${elevationDurationSeconds} seconds …"
 updateScriptLog ""
-results=$(eval "$adminDialogCMD")
-echo $results
+results=$(eval "$adminDialogCMD" & webHookMessage)
+echo $results 
 
 # Demote the user to standard
 updateScriptLog "${scriptFunctionalName}: Allowed time of ${elevationDurationSeconds} seconds has passed, demoting ${loggedInUser} to standard"
