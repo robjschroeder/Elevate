@@ -30,13 +30,6 @@
             "property_order": 4,
 			"default": "true",
 			"type": "boolean"
-        },
-        "webhookURL": {
-            "title": "WebHook URL",
-            "description": "If set, Elevate can send a notification via webhook to Teams or Slack when a user elevates",
-            "property_order": 5,
-            "default": "",
-            "type": "string"
         }
 	}
 }
