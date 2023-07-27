@@ -64,6 +64,10 @@
 # - Removed ComputerID from PLIST, no need
 # - WebhookURL should not be stored in PLIST, it will now be removed after it is used
 #
+# Updated 07.27.2023 @robjschroeder
+# Version: 2.0.4
+# - Silenced the output of the creation of the Launch Daemon to declutter Jamf Pro policy logs (thanks @dan-snelson!)
+#
 ##################################################
 
 ####################################################################################################
@@ -76,7 +80,7 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.3"
+scriptVersion="2.0.4"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
@@ -1004,7 +1008,7 @@ else
 fi
 
 # Set up the LaunchDaemon
-tee /Library/LaunchDaemons/"${plistDomain}".elevate.plist << EOF
+tee /Library/LaunchDaemons/"${plistDomain}".elevate.plist &>/dev/null << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
