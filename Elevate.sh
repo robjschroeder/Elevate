@@ -930,7 +930,7 @@ checkIfAdmin
 
 # Display prompt dialog
 echo $promptJSON > $promptJSONFile
-promptResults=$( eval "$dialogBinary --jsonfile ${promptJSONFile} --json" )
+promptResults=$( eval "$dialogBinary --jsonfile ${promptJSONFile} --json" | sed 's/ERROR: Unable to delete command file//g' )
 
 # Evaluate User Input
 if [[ -z "${promptResults}" ]]; then
