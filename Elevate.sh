@@ -68,6 +68,10 @@
 # Version: 2.0.4
 # - Silenced the output of the creation of the Launch Daemon to declutter Jamf Pro policy logs (thanks @dan-snelson!)
 #
+# Updated 08.17.2023 @dan-snelson
+# Version 2.0.5
+# - Added permissions correction on `mktemp`-created files (for swiftDialog 2.3)
+#
 ##################################################
 
 ####################################################################################################
@@ -80,7 +84,7 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.4"
+scriptVersion="2.0.5"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
@@ -476,12 +480,14 @@ dialogVersion=$( /usr/local/bin/dialog --version )
 # Set Dialog path, Command Files, JAMF binary, log files and currently logged-in user
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-dialogApp="/Library/Application\ Support/Dialog/Dialog.app/Contents/MacOS/Dialog"
-dialogBinary="/usr/local/bin/dialog"
-adminCommandFile=$( mktemp -u /var/tmp/dialogAdmin.XXX )
-promptCommandFile=$( mktemp -u /var/tmp/dialogPrompt.XXX )
-promptJSONFile=$( mktemp -u /var/tmp/promptJSONFile.XXX )
 jamfBinary="/usr/local/bin/jamf"
+dialogBinary="/usr/local/bin/dialog"
+promptJSONFile=$( mktemp /var/tmp/promptJSONFile.XXX )
+adminCommandFile=$( mktemp /var/tmp/dialogCommandFileAdmin.XXX )
+promptCommandFile=$( mktemp /var/tmp/dialogCommandFilePrompt.XXX )
+
+# Set permissions on Dialog Command Files
+chmod -v 555 /var/tmp/dialogCommandFile*
 
 osVersion=$( sw_vers -productVersion )
 osBuild=$( sw_vers -buildVersion )
