@@ -212,13 +212,13 @@ updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): Current Logged-in U
 # Pre-flight Check: Validate Operating System Version
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Since swiftDialog requires at least macOS 11 Big Sur, first confirm the major OS version
-if [[ "${osMajorVersion}" -ge 11 ]] ; then
+# Since swiftDialog 2.3 requires at least macOS 12 Monterey, first confirm the major OS version
+if [[ "${osMajorVersion}" -ge 12 ]] ; then
     updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): macOS ${osMajorVersion} installed; continuing ..."
 else
-    # The Mac is running an operating system older than macOS 11 Big Sur; exit with error
-    updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): swiftDialog requires at least macOS 11 Big Sur and this Mac is running ${osVersion} (${osBuild}), exiting with error."
-    osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\rExpected macOS 11 Big Sur (or newer), but found macOS '"${osVersion}"'.\r\r" with title "'${scriptFunctionalName}': Detected Outdated Operating System" buttons {"Open Software Update"} with icon caution'
+    # The Mac is running an operating system older than macOS 12 Monterey; exit with error
+    updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): swiftDialog 2.3 requires at least macOS 12 Monterey and this Mac is running ${osVersion} (${osBuild}), exiting with error."
+    osascript -e 'display dialog "Please advise your Support Representative of the following error:\r\rExpected macOS 12 Monterey (or newer), but found macOS '"${osVersion}"'.\r\r" with title "'${scriptFunctionalName}': Detected Outdated Operating System" buttons {"Open Software Update"} with icon caution'
     updateScriptLog "PRE-FLIGHT CHECK (${scriptFunctionalName}): Executing /usr/bin/open '/System/Library/CoreServices/Software Update.app' …"
     su - "${loggedInUser}" -c "/usr/bin/open /System/Library/CoreServices/Software Update.app"
     exit 1
@@ -487,7 +487,8 @@ adminCommandFile=$( mktemp /var/tmp/dialogCommandFileAdmin.XXX )
 promptCommandFile=$( mktemp /var/tmp/dialogCommandFilePrompt.XXX )
 
 # Set permissions on Dialog Command Files
-chmod -v 555 /var/tmp/dialogCommandFile*
+chmod -v 666 "${promptJSONFile}"
+chmod -v 666 /var/tmp/dialogCommandFile*
 
 osVersion=$( sw_vers -productVersion )
 osBuild=$( sw_vers -buildVersion )
@@ -616,11 +617,11 @@ function captureReason () {
 # Parse JSON via osascript and JavaScript
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-function get_json_value() {
-    JSON="$1" osascript -l 'JavaScript' \
-        -e 'const env = $.NSProcessInfo.processInfo.environment.objectForKey("JSON").js' \
-        -e "JSON.parse(env).$2"
-}
+# function get_json_value() {
+#     JSON="$1" osascript -l 'JavaScript' \
+#         -e 'const env = $.NSProcessInfo.processInfo.environment.objectForKey("JSON").js' \
+#         -e "JSON.parse(env).$2"
+# }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Parse JSON via osascript and JavaScript for the Prompt dialog (thanks, @bartreardon!)
