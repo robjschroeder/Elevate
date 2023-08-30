@@ -19,6 +19,7 @@ With version 2.0.0 I have added an additional prompt that will ask the user to p
 With 2.0.0 you can configure a Teams or Slack webhook URL to send the Elevation request to. This can be handy to get a feel for what your users are requesting admin for and how often.
 
 ## Check the changelog for updates on changes.
+Important: Version 2.0.5 will not work for computers running macOS 11 Big Sur and earlier. As this project uses swiftDialog as a dependancy, macOS Monterey or later is required. For more information check out: https://swiftdialog.app/
 
 ## Why build this
 In my environment, I needed a way to be able to temporarily give admin access to certain users while having the confidence that they would return to a standard user after the given amount of time has passed. Also, I would like to swiftDialog-ize everything!
