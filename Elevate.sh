@@ -72,6 +72,10 @@
 # Version 2.0.5
 # - Added permissions correction on `mktemp`-created files (for swiftDialog 2.3)
 #
+# Updated 08.31.2023 @robjschroeder
+# Version 2.0.6
+# - Updated the dialog download URL
+#
 ##################################################
 
 ####################################################################################################
@@ -84,7 +88,7 @@
 # Script Version and Jamf Pro Script Parameters
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-scriptVersion="2.0.5"
+scriptVersion="2.0.6"
 scriptFunctionalName="Elevate"
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
@@ -231,7 +235,7 @@ fi
 function dialogCheck() {
 
     # Get the URL of the latest PKG From the Dialog GitHub repo
-    dialogURL=$(curl --silent --fail "https://api.github.com/repos/bartreardon/swiftDialog/releases/latest" | awk -F '"' "/browser_download_url/ && /pkg\"/ { print \$4; exit }")
+    dialogURL=$(curl -L --silent --fail "https://api.github.com/repos/swiftDialog/swiftDialog/releases/latest" | awk -F '"' "/browser_download_url/ && /pkg\"/ { print \$4; exit }")
 
     # Expected Team ID of the downloaded PKG
     expectedDialogTeamID="PWA5E9TQ59"
